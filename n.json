@@ -1,0 +1,90 @@
+[
+  {
+    "venueName": "Beachfront Resort",
+    "venueAddress": "42 Palm Beach Road",
+    "venueCity": "Langkawi",
+    "venueState": "Kedah",
+    "pricePerNight": 450,
+    "isFavourite": null,
+    "specialty": "Beautiful beachfront views and water sports",
+    "description": "Experience a luxurious beachfront resort with stunning ocean views and a wide range of water sports activities. Perfect for a relaxing vacation in Langkawi.",
+    "img": ""
+  },
+  {
+    "venueName": "Mountain Retreat Cabin",
+    "venueAddress": "78 Rainforest Trail",
+    "venueCity": "Cameron Highlands",
+    "venueState": "Pahang",
+    "pricePerNight": 200,
+    "isFavourite": null,
+    "specialty": "Tranquil mountain getaway with hiking trails",
+    "description": "Escape to the serene Cameron Highlands with our cozy mountain retreat cabin. Explore nearby hiking trails and enjoy the cool mountain air.",
+    "img": ""
+  },
+  {
+    "venueName": "City Center Condo",
+    "venueAddress": "15 Bukit Bintang Street",
+    "venueCity": "Kuala Lumpur",
+    "venueState": "Wilayah Persekutuan",
+    "pricePerNight": 300,
+    "isFavourite": null,
+    "specialty": "Convenient city living near shopping and nightlife",
+    "description": "Stay in the heart of Kuala Lumpur with our city center condo. Experience the convenience of shopping, dining, and nightlife at your doorstep.",
+    "img": ""
+  },
+  {
+    "venueName": "Historic Heritage Hotel",
+    "venueAddress": "25 Colonial Street",
+    "venueCity": "George Town",
+    "venueState": "Penang",
+    "pricePerNight": 180,
+    "isFavourite": null,
+    "specialty": "Preserving the charm of colonial architecture",
+    "description": "Immerse yourself in the rich history of Penang at our historic heritage hotel. Enjoy a unique blend of colonial charm and modern amenities.",
+    "img": ""
+  },
+  {
+    "venueName": "Rainforest Treehouse",
+    "venueAddress": "6 Canopy Lane",
+    "venueCity": "Taman Negara",
+    "venueState": "Pahang",
+    "pricePerNight": 350,
+    "isFavourite": null,
+    "specialty": "Unique stay high in the rainforest canopy",
+    "description": "Experience a one-of-a-kind adventure in Taman Negara with our rainforest treehouse. Stay high in the canopy and immerse yourself in nature.",
+    "img": ""
+  },
+  {
+    "venueName": "Jungle Retreat Lodge",
+    "venueAddress": "10 Canopy Road",
+    "venueCity": "Borneo Rainforest",
+    "venueState": "Sabah",
+    "pricePerNight": 320,
+    "isFavourite": null,
+    "specialty": "Immersive jungle experience with wildlife encounters",
+    "description": "Experience the wonders of the Borneo rainforest at our jungle retreat lodge. Encounter diverse wildlife and explore lush jungle trails.",
+    "img": ""
+  },
+  {
+    "venueName": "Island Paradise Resort",
+    "venueAddress": "7 Palm Island",
+    "venueCity": "Pulau Redang",
+    "venueState": "Terengganu",
+    "pricePerNight": 480,
+    "isFavourite": null,
+    "specialty": "Tropical island escape with crystal-clear waters",
+    "description": "Escape to paradise at our resort on Pulau Redang. Experience pristine beaches, snorkeling, and crystal-clear waters in this island oasis.",
+    "img": ""
+  },
+  {
+    "venueName": "Riverside Bungalow",
+    "venueAddress": "22 River View Road",
+    "venueCity": "Kuching",
+    "venueState": "Sarawak",
+    "pricePerNight": 180,
+    "isFavourite": null,
+    "specialty": "Tranquil retreat along the Sarawak River",
+    "description": "Enjoy peace and serenity at our riverside bungalow in Kuching. Relax by the Sarawak River and soak in the natural beauty of the surroundings.",
+    "img": ""
+  }
+]

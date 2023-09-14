@@ -1,152 +1,175 @@
-import React, {useState} from 'react';
+import React, { useState } from 'react';
 import {
-  StyleSheet,
-  Button,
-  Text,
-  View,
-  TextInput,
-  Image,
-  ScrollView,
-  TouchableOpacity,
+    StyleSheet,
+    Button,
+    Text,
+    View,
+    TextInput,
+    Image,
+    ScrollView,
+    TouchableOpacity,
 } from 'react-native';
 
-import {auth, db} from '../firebase';
-import {ref, set, onValue} from 'firebase/database';
+import { auth, db } from '../components/firebase';
+import { ref, set } from 'firebase/database';
 
-const EditProfileScreen = ({navigation, route}) => {
-  const {userProfile} = route.params;
+const EditProfileScreen = ({ navigation, route }) => {
+    const { userProfile } = route.params;
+    const [state, setState] = useState({
+        avatar: userProfile.avatar,
+        name: userProfile.name,
+        phoneNumber: userProfile.phoneNumber,
+        bio: userProfile.bio,
+        age: userProfile.age,
+        dateOfBirth: userProfile.dateOfBirth,
+        avatarIndex: 0,
+        avatarOptions: [
+            'https://www.bootdey.com/img/Content/avatar/avatar1.png',
+            'https://www.bootdey.com/img/Content/avatar/avatar2.png',
+            'https://www.bootdey.com/img/Content/avatar/avatar3.png',
+            'https://www.bootdey.com/img/Content/avatar/avatar4.png',
+            'https://www.bootdey.com/img/Content/avatar/avatar5.png',
+            'https://www.bootdey.com/img/Content/avatar/avatar6.png',
+            'https://www.bootdey.com/img/Content/avatar/avatar7.png',
+        ],
+    });
 
-  const [state, setState] = useState({
-    avatar: 'https://example.com/jane-doe-avatar.png',
-    name: userProfile.name,
-    phoneNumber: userProfile.phoneNumber,
-    bio: userProfile.bio,
-    age: userProfile.age,
-    dateOfBirth: userProfile.dateOfBirth,
-    avatarIndex: 0,
-    avatarOptions: [
-      'https://www.bootdey.com/img/Content/avatar/avatar1.png',
-      'https://www.bootdey.com/img/Content/avatar/avatar2.png',
-      'https://www.bootdey.com/img/Content/avatar/avatar3.png',
-      'https://www.bootdey.com/img/Content/avatar/avatar4.png',
-      'https://www.bootdey.com/img/Content/avatar/avatar5.png',
-      'https://www.bootdey.com/img/Content/avatar/avatar6.png',
-      'https://www.bootdey.com/img/Content/avatar/avatar7.png',
-    ],
-  });
+    const toggleAvatar = () => {
+        const nextIndex = (state.avatarIndex + 1) % state.avatarOptions.length;
+        setState((prevState) => ({
+            ...prevState,
+            avatarIndex: nextIndex,
+            avatar: state.avatarOptions[nextIndex], 
+        }));
+    };
 
-  const toggleAvatar = () => {
-    setState(prevState => ({
-      ...prevState,
-      avatarIndex: (prevState.avatarIndex + 1) % state.avatarOptions.length,
-    }));
-  };
+    const saveChanges = () => {
+        console.log('Changes have been saved');
+        navigation.navigate('ProfileScreen', { updatedUserProfile: state });
+    };
 
-  const saveChanges = () => {
-    console.log('Changes have been saved');
-    navigation.navigate('ProfileScreen', {updatedUserProfile: state});
-  };
+    const combFunc = () => {
+        if (validateInputs()) {
+            writeUserData();
+        } else {
+            console.log('Input validation failed');
+        }
+    };
 
-  const combFunc = () => {
-    writeUserData();
-    saveChanges();
-    console.log('this ran');
-  };
+    const validateInputs = () => {
+        if (state.name.trim() === '') {
+            console.log('Name is required');
+            return false;
+        }
+        if (!/^\d{3}-\d{7}$/.test(state.phoneNumber)) {
+            console.log('Invalid Phone Number format');
+            return false;
+        }
+        if (!/^\d{2}$/.test(state.age)) {
+            console.log('Invalid Age format');
+            return false;
+        }
+        if (!/^\d{2}-\d{2}-\d{4}$/.test(state.dateOfBirth)) {
+            console.log('Invalid Date of Birth format');
+            return false;
+        }
+        return true;
+    };
 
-  const writeUserData = () => {
-    const reference = ref(db, 'profile/' + auth.currentUser?.email.split('@')[0]);
-    console.log('this ran2');
-    set(reference, {
-      avatar: 'https://example.com/jane-doe-avatar.png',
-      name: userProfile.name,
-      phoneNumber: userProfile.phoneNumber,
-      bio: userProfile.bio,
-      age: userProfile.age,
-      dateOfBirth: userProfile.dateOfBirth,
-    })
-      .then(data => {
-        //success callback
-        console.log(
-          'data logged successfully: ',
-          data,
-          ' to ',
-          auth.currentUser?.email,
+    const writeUserData = () => {
+        const reference = ref(
+            db,
+            'profile/' + auth.currentUser?.email.split('@')[0]
         );
-      })
-      .catch(error => {
-        //error callback
-        console.log('error ', error);
-      });
-  };
 
-  return (
-    <ScrollView contentContainerStyle={styles.container}>
-      <View style={styles.avatarContainer}>
-        <Image
-          style={styles.avatar}
-          source={{uri: state.avatarOptions[state.avatarIndex]}}
-        />
-      </View>
-      <TouchableOpacity
-        style={styles.changeAvatarButton}
-        onPress={toggleAvatar}>
-        <Text style={styles.changeAvatarButtonText}>Change Avatar</Text>
-      </TouchableOpacity>
+        set(reference, {
+            avatar: state.avatar,
+            name: state.name,
+            phoneNumber: state.phoneNumber,
+            bio: state.bio,
+            age: state.age,
+            dateOfBirth: state.dateOfBirth,
+        })
+            .then(() => {
+                console.log('Data updated successfully for: ', auth.currentUser?.email);
+                saveChanges();
+            })
+            .catch((error) => {
+                console.log('Error updating data: ', error);
+            });
+    };
 
-      <Text style={styles.title}>Edit Profile</Text>
+    return (
+        <ScrollView contentContainerStyle={styles.container}>
+            <View style={styles.avatarContainer}>
+                <Image
+                    style={styles.avatar}
+                    source={{ uri: state.avatar }}
+                />
+            </View>
+            <TouchableOpacity
+                style={styles.changeAvatarButton}
+                onPress={toggleAvatar}
+            >
+                <Text style={styles.changeAvatarButtonText}>Change Avatar</Text>
+            </TouchableOpacity>
 
-      <Text style={styles.label}>Name:</Text>
-      <TextInput
-        style={styles.input}
-        placeholder="Enter your name: eg *** *** **"
-        value={state.name}
-        onChangeText={text => setState({...state, name: text})}
-      />
-      <Text style={styles.label}>Phone Number:</Text>
-      <TextInput
-        style={styles.input}
-        placeholder="Enter your Phone Number: eg ***-****"
-        value={state.phoneNumber}
-        onChangeText={text => setState({...state, phoneNumber: text})}
-      />
+            <Text style={styles.title}>Edit Profile</Text>
 
-      <Text style={styles.label}>Age:</Text>
-      <TextInput
-        style={styles.input}
-        placeholder="Enter your Age: eg **"
-        value={state.age}
-        onChangeText={text => setState({...state, age: text})}
-      />
+            <Text style={styles.label}>Name:</Text>
+            <TextInput
+                style={styles.input}
+                placeholder="Enter your name: "
+                value={state.name}
+                onChangeText={(text) => setState({ ...state, name: text })}
+            />
+            <Text style={styles.label}>Phone Number:</Text>
+            <TextInput
+                style={styles.input}
+                placeholder="Enter your Phone Number: "
+                value={state.phoneNumber}
+                onChangeText={(text) => setState({ ...state, phoneNumber: text })}
+            />
 
-      <Text style={styles.label}>Date of Birth:</Text>
-      <TextInput
-        style={styles.input}
-        placeholder="Enter your Date Of Birth: eg DD-MM-YYYY"
-        value={state.dateOfBirth}
-        onChangeText={text => setState({...state, dateOfBirth: text})}
-      />
+            <Text style={styles.label}>Age:</Text>
+            <TextInput
+                style={styles.input}
+                placeholder="Enter your Age: "
+                value={state.age}
+                onChangeText={(text) => setState({ ...state, age: text })}
+            />
 
-      <Text style={styles.label}>Bio:</Text>
-      <View style={styles.bioInputContainer}>
-        <TextInput
-          style={styles.bioInput}
-          placeholder="Enter your bio"
-          value={state.bio}
-          multiline={true}
-          numberOfLines={6}
-          maxLength={200}
-          onChangeText={text => setState({...state, bio: text})}
-        />
-      </View>
+            <Text style={styles.label}>Date of Birth:</Text>
+            <TextInput
+                style={styles.input}
+                placeholder="Enter your Date Of Birth: "
+                value={state.dateOfBirth}
+                onChangeText={(text) => setState({ ...state, dateOfBirth: text })}
+            />
 
-      <View style={styles.buttonContainer}>
-        <Button title="Back" onPress={() => navigation.goBack()} />
-        <View style={{width: 10}} />
-        <Button title="Save Changes" onPress={combFunc} />
-      </View>
-    </ScrollView>
-  );
+            <Text style={styles.label}>Bio:</Text>
+            <View style={styles.bioInputContainer}>
+                <TextInput
+                    style={styles.bioInput}
+                    placeholder="Enter your bio"
+                    value={state.bio}
+                    multiline={true}
+                    numberOfLines={6}
+                    maxLength={200}
+                    onChangeText={(text) => setState({ ...state, bio: text })}
+                />
+            </View>
+
+            <View style={styles.buttonContainer}>
+                <Button title="Back" onPress={() => navigation.goBack()} />
+                <View style={{ width: 10 }} />
+                <Button title="Save Changes" onPress={combFunc} />
+            </View>
+        </ScrollView>
+    );
 };
+
+export default EditProfileScreen;
 
 const styles = StyleSheet.create({
   container: {
@@ -155,7 +178,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     backgroundColor: '#F5FCFF',
     padding: 20,
-  },
+    },
+  buttonContainer: {
+    flexDirection: 'row', 
+    justifyContent: 'space-between', 
+    paddingHorizontal: 20, 
+    },
   title: {
     fontSize: 24,
     textAlign: 'center',
@@ -213,10 +241,5 @@ const styles = StyleSheet.create({
     color: '#1E90FF',
     fontSize: 18,
   },
-  buttonContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-  },
 });
 
-export default EditProfileScreen;

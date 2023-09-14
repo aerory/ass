@@ -1,44 +1,73 @@
 import React, {useState, useEffect} from 'react';
 import {
   StyleSheet,
-  Button,
   Text,
   View,
   Image,
-  TextInput,
   TouchableHighlight,
+  TouchableOpacity,
   ScrollView,
   SafeAreaView,
 } from 'react-native';
+
+import {Button, TextInput} from 'react-native-paper';
 import {DatePickerModal} from 'react-native-paper-dates';
 import {ref, set, onValue} from 'firebase/database';
-import {auth, db} from '../firebase';
+import {auth, db} from '../components/firebase';
+import Icon from 'react-native-vector-icons/Ionicons';
+
+import {styles, VenueStyles, ShownStyles} from '../styles/HomeStyle';
 
 const HomeScreen = ({navigation}) => {
   const [searchText, setSearchText] = useState('');
-  const [query, setQuery] = useState('');
+  const [query, setQuery] = useState([]);
   const [showAll, setShowAll] = useState(true);
-  const [showVenue, setShowVenue] = useState(false);
-  const [open, setOpen] = useState(false);
   const [range, setRange] = useState({
     startDate: undefined,
     endDate: undefined,
   });
   const [venues, setVenues] = useState([]);
 
-  const currentSessionEmail = auth.currentUser?.email;
+  const currentSessionEmail = auth.currentUser?.email.split('@')[0];
+  console.log(currentSessionEmail);
+
+  useEffect(() => {
+    const unsubscribe = navigation.addListener('focus', () => {
+      readVenueData();
+    });
+
+    return unsubscribe;
+  }, []);
 
   const searchTextHandler = () => {
-    const queryResult = venues.find(venue =>
-      Object.values(venue).some(value =>
-        value.toLowerCase().includes(searchText.toLowerCase()),
-      ),
-    );
-    if (queryResult) {
-      setQuery(queryResult.venueID);
+    const queryResult = venues.filter(item => {
+      return item.venueName.toLowerCase().includes(searchText.toLowerCase());
+    });
+    if (queryResult.length > 0) {
+      setVenues(queryResult);
+    } else {
+      readVenueData();
     }
-    readVenueData();
   };
+
+  // const handleSearch = text => {
+  //   setSearchText(text);
+  // };
+
+  // const filteredData = venueData.filter(item => {
+  //   return item.venueName.toLowerCase().includes(searchText.toLowerCase());
+  // });
+
+  {
+    /* <View style={styles.searchInputContainer}>
+          <TextInput
+            style={styles.searchInput}
+            placeholder="Search wishlist"
+            onChangeText={handleSearch}
+            value={searchText}
+          />
+        </View> */
+  }
 
   const writeVenueData = (venueID, name, address, price, city, state) => {
     const reference = ref(db, 'venues/' + venueID);
@@ -48,13 +77,20 @@ const HomeScreen = ({navigation}) => {
       venueCity: city,
       venueState: state,
       pricePerNight: price,
-    });
-    console.log('Data written');
+    })
+      .then(() => {
+        //success callback
+        console.log('venue data logged successfully');
+      })
+      .catch(error => {
+        //error callback
+        console.log('venue writing error ', error);
+      });
   };
 
   const readVenueData = () => {
     const newVenues = [];
-    const reference = ref(db, 'venues/');
+    const reference = ref(db, 'venue/');
     onValue(reference, snapshot => {
       snapshot.forEach(childSnapshot => {
         const obj = childSnapshot.val();
@@ -64,10 +100,6 @@ const HomeScreen = ({navigation}) => {
     });
     setVenues(newVenues);
   };
-
-  useEffect(() => {
-    readVenueData();
-  }, []);
 
   const VenueDisplay = () => {
     const [showAll, setShowAll] = useState('initial');
@@ -99,60 +131,110 @@ const HomeScreen = ({navigation}) => {
       setShowVenue('none');
     };
 
-    const AddToWishlist = id => {
-      // Implement your logic here
+    const checkWishlist = venueID => {
+      //check wishlist
+      const wishlistRef = ref(db, 'wishlist/' + currentSessionEmail);
+      const wishlistSet = new Set(); // use set so no non-unique venue ids
+      const jsonObject = {};
+
+      onValue(wishlistRef, snapshot => {
+        if (snapshot.exists()) {
+          snapshot.forEach(childSnapshot => {
+            wishlistSet.add(childSnapshot.val());
+          });
+        } else {
+          console.log(currentSessionEmail, 'has no wishlist');
+        }
+      });
+
+      if (wishlistSet.has(venueID)) {
+        console.log('Venue in wishlist; remove from wishlist');
+        wishlistSet.delete(venueID);
+      } else {
+        console.log('Venue not in wishlist; add to wishlist');
+        wishlistSet.add(venueID);
+      }
+
+      const wishlistArr = Array.from(wishlistSet);
+      console.log(wishlistArr);
+
+      wishlistArr.forEach((value, index) => {
+        jsonObject[index.toString()] = value;
+      });
+
+      console.log(wishlistSet);
+
+      set(wishlistRef, jsonObject);
     };
+    const isFavorite = false;
 
     return (
       <View>
         <ScrollView
           contentContainerStyle={{flexDirection: 'column'}}
           style={{height: 610, display: showAll}}>
+          {/* Custom header */}
           {venues.map(venue => (
             <TouchableHighlight
               key={venue.venueID}
               onPress={() => OpenVenue(venue)}
               underlayColor="white">
               <View style={VenueStyles.container}>
-                <Image source={{uri: venue.url}} style={VenueStyles.image} />
+                <Image source={{uri: venue.img}} style={VenueStyles.image} />
                 <View style={VenueStyles.infoContainer}>
                   <Text style={VenueStyles.venueName}>{venue.venueName}</Text>
-                  <Text style={VenueStyles.city}>{venue.venueCity}</Text>
+
+                  <Text style={VenueStyles.cityState}>
+                    {venue.venueCity + ', ' + venue.venueState}
+                  </Text>
                   <Text style={VenueStyles.venueDescription}>
-                    {venue.Description}
+                    {venue.specialty}
                   </Text>
                   <Text style={VenueStyles.price}>
-                    ${venue.pricePerNight} / night
+                    MYR {venue.pricePerNight} / night
                   </Text>
                 </View>
               </View>
             </TouchableHighlight>
           ))}
         </ScrollView>
-        <ScrollView display={showVenue}>
+        <View display={showVenue}>
           {shownVenue.map(venue => (
-            <View key={venue.venueID} style={ShownStyle.container}>
-              <Image style={ShownStyle.image} source={{uri: venue.url}} />
-              <Text style={ShownStyle.name} numberOfLines={1}>
+            <View key={venue.venueID} style={ShownStyles.container}>
+              <Image style={ShownStyles.image} source={{uri: venue.img}} />
+              <Text style={ShownStyles.name} numberOfLines={1}>
                 {venue.venueName}
               </Text>
-              <Text style={ShownStyle.city} numberOfLines={1}>
-                {venue.venueCity}
+              <TouchableOpacity
+                style={{position: 'absolute', right: 12, top: 8}}
+                onPress={() => checkWishlist(venue.venueID)}>
+                <Icon
+                  name={isFavorite ? 'heart-outline' : 'heart'} // Use the heart or heart-outline icon based on the favorite state
+                  size={24}
+                  color={isFavorite ? 'black' : 'red'} // Change the color based on the favorite state
+                />
+              </TouchableOpacity>
+              <Text style={ShownStyles.cityState} numberOfLines={1}>
+                {venue.venueCity + ', ' + venue.venueState}
               </Text>
-              <Text style={ShownStyle.longDescription} numberOfLines={4}>
-                {venue.Description}
-                <Text style={ShownStyle.price} numberOfLines={1}>
-                  {' '}
-                  ${venue.pricePerNight}{' '}
+              <Text style={ShownStyles.longDescription} numberOfLines={6}>
+                {venue.description}
+                <Text style={ShownStyles.price} numberOfLines={1}>
+                  {'\n\n'}
+                  MYR {venue.pricePerNight}{' '}
                 </Text>
                 / night
               </Text>
               <Button
-                style={{color: 'red'}}
-                title="Choose Date"
                 onPress={() => setOpen(true)}
                 uppercase={false}
-                mode="outlined"></Button>
+                mode="outlined">
+                Book Venue
+              </Button>
+              <Button onPress={CloseVenue} mode="outlined">
+                Close
+              </Button>
+
               <DatePickerModal
                 locale="en"
                 presentationStyle="pageSheet"
@@ -163,17 +245,11 @@ const HomeScreen = ({navigation}) => {
                 endDate={range.endDate}
                 onConfirm={() => onConfirm(range.startDate, range.endDate)}
               />
-              <View style={ShownStyle.Buttons}>
-                <Button title="cancel" onPress={CloseVenue}></Button>
-                <Button title="book"></Button>
-                <Button
-                  title="Add to Wishlist"
-                  onPress={() => AddToWishlist(venue.venueID)}></Button>
-              </View>
+              <View style={ShownStyles.Buttons}></View>
             </View>
           ))}
-        </ScrollView>
-        <ScrollView
+        </View>
+        {/* <ScrollView
           contentContainerStyle={{flexDirection: 'column'}}
           style={{height: 610}}
           display={showVenue}>
@@ -182,7 +258,7 @@ const HomeScreen = ({navigation}) => {
               <Image source={{uri: venue.url}} style={VenueStyles.image} />
               <View style={VenueStyles.infoContainer}>
                 <Text style={VenueStyles.venueName}>{venue.venueName}</Text>
-                <Text style={VenueStyles.city}>{venue.venueCity}</Text>
+                <Text style={VenueStyles.cityState}>{venue.venueCity}</Text>
                 <Text style={VenueStyles.venueDescription}>
                   {venue.Description}
                 </Text>
@@ -203,136 +279,60 @@ const HomeScreen = ({navigation}) => {
                   {(range.endDate - range.startDate) * venue.pricePerNight}
                 </Text>
               </View>
-              <View style={ShownStyle.Buttons}>
+              <View style={ShownStyles.Buttons}>
                 <Button title="cancel" onPress={CloseVenue}></Button>
                 <Button title="pay"></Button>
               </View>
             </View>
           ))}
-        </ScrollView>
+        </ScrollView> */}
       </View>
     );
   };
-
-  return (
-    <SafeAreaView>
-      <View style={{flexDirection: 'row'}}>
-        <TextInput
-          style={styles.label}
-          placeholder="search..."
-          value={searchText}
-          onChangeText={text => setSearchText(text)}
-        />
+  if (venues.length === 0) {
+    return (
+      <View style={styles.refreshButton}>
         <Button
-          style={styles.searchButton}
-          title="Go"
-          onPress={searchTextHandler}
-        />
+          icon="refresh"
+          mode="contained-tonal"
+          onPress={() => readVenueData()}>
+          Refresh
+        </Button>
       </View>
-      <View>
-        <VenueDisplay />
-      </View>
-    </SafeAreaView>
-  );
+    );
+  } else {
+    return (
+      <SafeAreaView>
+        <View style={{flexDirection: 'row'}}>
+          <TextInput
+            style={styles.label}
+            placeholder="search..."
+            mode="outlined"
+            value={searchText}
+            onChangeText={text => setSearchText(text)}
+          />
+          <View
+            style={{
+              paddingTop: 5,
+              width: 80,
+              height: 50,
+              justifyContent: 'center',
+              alignItems: 'center',
+            }}>
+            <Button
+              icon="magnify" // Replace "magnify" with your desired icon
+              mode="contained-tonal"
+              onPress={() => searchTextHandler()}
+              style={{width: '75%', height: '50%'}}
+            />
+          </View>
+        </View>
+        <View>
+          <VenueDisplay />
+        </View>
+      </SafeAreaView>
+    );
+  }
 };
-
-const styles = StyleSheet.create({
-  title: {
-    fontSize: 20,
-    textAlign: 'center',
-    margin: 20,
-  },
-  searchButton: {
-    height: 50,
-  },
-  label: {
-    marginTop: 1,
-    textAlignVertical: 'center',
-    height: 50,
-    width: 340,
-    fontSize: 22,
-    backgroundColor: 'white',
-  },
-});
-
-const VenueStyles = StyleSheet.create({
-  container: {
-    flexDirection: 'column',
-    backgroundColor: 'white',
-    borderRadius: 10,
-    overflow: 'hidden',
-    margin: 10,
-    shadowColor: '#000',
-    shadowOffset: {width: 0, height: 2},
-    shadowOpacity: 0.25,
-    shadowRadius: 3.84,
-    elevation: 5,
-  },
-  image: {
-    width: 380,
-    height: 200,
-  },
-  infoContainer: {
-    flex: 1,
-    padding: 10,
-  },
-  venueName: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: 'black',
-  },
-  venueDescription: {},
-  city: {
-    fontSize: 16,
-    color: 'black',
-  },
-  price: {
-    fontSize: 16,
-    color: 'grey',
-    fontWeight: 'bold',
-  },
-});
-
-const ShownStyle = StyleSheet.create({
-  container: {
-    margin: 10,
-  },
-  image: {
-    width: 380,
-    aspectRatio: 3 / 2,
-    resizeMode: 'cover',
-    borderRadius: 10,
-  },
-  name: {
-    fontSize: 18,
-    lineHeight: 26,
-    fontWeight: 'bold',
-    color: 'black',
-  },
-  city: {
-    fontSize: 16,
-    lineHeight: 26,
-  },
-  prices: {
-    fontSize: 18,
-    marginVertical: 10,
-  },
-  price: {
-    fontWeight: 'bold',
-  },
-  totalPrice: {
-    color: '#5b5b5b',
-    textDecorationLine: 'underline',
-  },
-  longDescription: {
-    marginVertical: 20,
-    fontSize: 16,
-    lineHeight: 24,
-  },
-  Buttons: {
-    flexDirection: 'row',
-    marginTop: 70,
-  },
-});
 
 export default HomeScreen;

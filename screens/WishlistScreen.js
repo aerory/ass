@@ -1,93 +1,203 @@
-import React, {Component, useState} from 'react';
+import React, {useState, useEffect} from 'react';
 import {
   StyleSheet,
+  View,
   Text,
   TextInput,
-  View,
   FlatList,
   Image,
   TouchableOpacity,
 } from 'react-native';
 
-const wishlistVenues = [];
+import {Button, Snackbar} from 'react-native-paper';
+import Icon from 'react-native-vector-icons/Ionicons';
+import {ref, set, get} from 'firebase/database';
+import {auth, db} from '../components/firebase';
 
-export default class WishlistScreen extends Component<Props> {
-  static navigationOptions = {
-    title: 'Wishlist',
+const Wishlist = ({navigation}) => {
+  const [venueData, setVenues] = useState([]);
+  const [isFavorite, setIsFavorite] = useState(false);
+
+  const [isSnackbarVisible, setisSnackbarVisible] = useState(false);
+
+  const currentSessionEmail = auth.currentUser?.email.split('@')[0];
+  const wishlistRef = ref(db, 'wishlist/' + currentSessionEmail);
+
+  useEffect(() => {
+    const unsubscribe = navigation.addListener('focus', () => {
+      getUserWishlist();
+    });
+
+    return unsubscribe;
+  }, [navigation]);
+
+  const renderItem = ({item}) => (
+    <TouchableOpacity style={styles.card}>
+      <Image source={{uri: item.img}} style={styles.image} />
+      <View style={styles.cardBody}>
+        <Text style={styles.name}>{item.venueName}</Text>
+        <TouchableOpacity
+          style={{position: 'absolute', right: 10, top: 10}}
+          onPress={() => removeFromWishlist(item.venueID)}>
+          <Icon
+            name={isFavorite ? 'heart-outline' : 'heart'} // Use the heart or heart-outline icon based on the favorite state
+            size={24}
+            color={isFavorite ? 'black' : 'red'} // Change the color based on the favorite state
+          />
+        </TouchableOpacity>
+        <Text style={styles.address}>
+          {item.venueAddress + ', ' + item.venueCity + ', ' + item.venueState}
+        </Text>
+        <Text style={styles.price}>MYR {item.pricePerNight} / night</Text>
+      </View>
+      <View style={styles.cardFooter}>
+        <Text style={styles.specialty}>{item.specialty}</Text>
+      </View>
+    </TouchableOpacity>
+  );
+
+  // read wishlish from user and update in wishlistIndex
+
+  const getUserWishlist = async () => {
+    try {
+      const wishlistIndex = [];
+      const snapshot = await get(wishlistRef);
+
+      if (snapshot.exists()) {
+        snapshot.forEach(childSnapshot => {
+          console.log(childSnapshot.val());
+          wishlistIndex.push(childSnapshot.val());
+          console.log('getUWL', wishlistIndex);
+        });
+      } else {
+        console.log(currentSessionEmail, 'has no wishlist');
+        console.log(wishlistIndex);
+      }
+
+      readVenueData(wishlistIndex);
+    } catch (error) {
+      console.error(error);
+    }
   };
 
-  constructor(props) {
-    super(props);
+  const readVenueData = wishlistIndex => {
+    const venueData = [];
+    console.log('rvd', wishlistIndex);
+    get(ref(db, 'venue/'))
+      .then(snapshot => {
+        if (snapshot.exists()) {
+          snapshot.forEach(childSnapshot => {
+            const obj = childSnapshot.val();
+            obj.venueID = childSnapshot.key;
+            if (wishlistIndex.includes(obj.venueID)) {
+              venueData.push(obj);
+              console.log(wishlistIndex);
+            }
+            // console.log(obj.venueID);
+            // console.log('readVD', venueData);
+            setVenues(venueData);
+          });
+        } else {
+          console.log('WL: Error reading venue data');
+          setVenues(venueData);
+        }
+        console.log(venueData);
+      })
+      .catch(error => {
+        console.error('Error getting venue:', error);
+      });
+  };
 
-    this.state = {};
+  const removeFromWishlist = venueID => {
+    setIsFavorite(!isFavorite);
+    //check wishlistsssss
+    const wishlistRef = ref(db, 'wishlist/' + currentSessionEmail);
+    const wishlistSet = new Set(); // use set so no non-unique venue ids
+    const jsonObject = {};
 
-    console.log('[+] <WishlistScreen> constructor() invoked');
-  }
+    get(wishlistRef)
+      .then(snapshot => {
+        if (snapshot.exists()) {
+          snapshot.forEach(childSnapshot => {
+            wishlistSet.add(childSnapshot.val());
+          });
+          console.log(wishlistSet);
+          if (wishlistSet.has(venueID)) {
+            console.log('WL: Venue in wishlist; remove from wishlist');
+            wishlistSet.delete(venueID);
+          }
 
-  componentDidMount() {
-    console.log('[+] <WishlistScreen> componentDidMount() invoked');
-  }
+          const wishlistArr = Array.from(wishlistSet);
 
-  componentDidUpdate() {
-    console.log('[+] <WishlistScreen> componentDidUpdate() invoked');
-  }
+          wishlistArr.forEach((value, index) => {
+            jsonObject[index.toString()] = value;
+          });
 
-  componentWillUnmount() {
-    console.log('[+] <WishlistScreen> componentWillUnmount() invoked');
-  }
+          console.log(wishlistSet);
 
-  render() {
-    console.log('[+] <WishlistScreen> render() invoked');
+          set(wishlistRef, jsonObject);
+        } else {
+          console.log(currentSessionEmail, 'has no wishlist');
+        }
 
-    // const filteredData = propertyData.filter(item => {
-    //   return item.address.toLowerCase().includes(searchText.toLowerCase());
-    // });
+        getUserWishlist();
+        showSnackbar();
+      })
+      .catch(error => {
+        console.error('Error getting wishlist:', error);
+      });
+  };
 
+  const showSnackbar = () => {
+    setisSnackbarVisible(true);
+    console.log('harh');
+    // hide the Snackbar after 1 second
+    // setTimeout(() => {
+    //   setisSnackbarVisible(false);
+    // }, 10000);
+  };
+
+  if (venueData.length === 0) {
+    return (
+      <View style={styles.loadingContainer}>
+        <Text style={styles.loadingText}> No item in wishlist found.</Text>
+        <Text style={styles.loadingText}> Start by adding one!</Text>
+      </View>
+    );
+  } else {
     return (
       <View style={styles.container}>
-        {/* <View style={styles.searchInputContainer}>
-          <TextInput
-          style={styles.searchInput}
-          placeholder="Search properties..."
-          onChangeText={handleSearch}
-          value={searchText}
-        />
-        </View>
         <FlatList
-          contentContainerStyle={styles.wishlistContainer}
-          // data={filteredData}
-          data = {wishlistVenues}
+          contentContainerStyle={styles.venueListContainer}
+          data={venueData}
           renderItem={renderItem}
           keyExtractor={item => item.id}
-        /> */}
+        />
+        <View>
+          <Snackbar
+            visible={isSnackbarVisible}
+            onDismiss={() => setisSnackbarVisible(false)}
+            duration={10000}>
+            Removed from wishlist
+          </Snackbar>
+        </View>
       </View>
     );
   }
-}
+};
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    paddingTop: 60,
+    paddingTop: 20,
   },
-  title: {
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
     fontSize: 20,
-    textAlign: 'center',
-    margin: 20,
   },
-  searchInputContainer: {
-    paddingHorizontal: 20,
-  },
-  searchInput: {
-    height: 20,
-    borderWidth: 1,
-    borderColor: '#dcdcdc',
-    backgroundColor: '#fff',
-    borderRadius: 5,
-    padding: 10,
-    marginBottom: 10,
-  },
-  wishlistContainer: {
+  venueListContainer: {
     paddingHorizontal: 20,
   },
   card: {
@@ -114,7 +224,7 @@ const styles = StyleSheet.create({
     marginBottom: 10,
     padding: 10,
   },
-  venueName: {
+  name: {
     fontSize: 20,
     fontWeight: 'bold',
     marginBottom: 5,
@@ -125,7 +235,7 @@ const styles = StyleSheet.create({
   },
   price: {
     fontSize: 14,
-    marginBottom: 5,
+    marginBottom: 0,
     color: '#666',
   },
   cardFooter: {
@@ -135,19 +245,11 @@ const styles = StyleSheet.create({
     borderTopColor: '#dcdcdc',
     justifyContent: 'space-between',
   },
-  beds: {
+  specialty: {
     fontSize: 14,
-    color: '#ffa500',
-    fontWeight: 'bold',
-  },
-  baths: {
-    fontSize: 14,
-    color: '#ffa500',
-    fontWeight: 'bold',
-  },
-  parking: {
-    fontSize: 14,
-    color: '#ffa500',
+    color: '#3eab2a',
     fontWeight: 'bold',
   },
 });
+
+export default Wishlist;

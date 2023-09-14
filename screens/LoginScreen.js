@@ -6,8 +6,9 @@ import {
   TextInput,
   TouchableOpacity,
   View,
+  Image,
 } from 'react-native';
-import {auth} from '../firebase';
+import {auth} from '../components/firebase';
 import {
   signInWithEmailAndPassword,
   createUserWithEmailAndPassword,
@@ -47,6 +48,8 @@ const LoginScreen = ({navigation}) => {
 
   return (
     <KeyboardAvoidingView style={styles.container} behavior="padding">
+      <Image source={require('../img/logo.png')} style={styles.logo}/>
+
       <View style={styles.inputContainer}>
         <TextInput
           placeholder="Email"
@@ -80,8 +83,11 @@ const LoginScreen = ({navigation}) => {
 export default LoginScreen;
 
 const styles = StyleSheet.create({
+  logo: {
+    marginBottom: 30,
+  },
   container: {
-    flex: 1,
+    flex: 0,
     justifyContent: 'center',
     alignItems: 'center',
   },

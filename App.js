@@ -1,21 +1,22 @@
 import 'react-native-gesture-handler';
 
-import React, {useEffect} from 'react';
+import React, {useEffect, useState} from 'react';
 import {StyleSheet} from 'react-native';
 import {NavigationContainer} from '@react-navigation/native';
 import {createDrawerNavigator} from '@react-navigation/drawer';
 import {createStackNavigator} from '@react-navigation/stack';
+import Ionicons from 'react-native-vector-icons/Ionicons';
 
 import ProfileScreen from './screens/ProfileScreen';
 import EditProfileScreen from './screens/EditProfileScreen';
 import LoginScreen from './screens/LoginScreen';
 import HomeScreen from './screens/HomeScreen';
-import WishlistScreen from './screens/FakeWishlist';
+import WishlistScreen from './screens/WishlistScreen';
 import HistoryScreen from './screens/HistoryScreen';
 import InboxScreen from './screens/InboxScreen';
 import CreateScreen from './screens/CreateScreen';
 
-import Ionicons from 'react-native-vector-icons/Ionicons';
+import {auth} from './components/firebase';
 
 const Drawer = createDrawerNavigator();
 const Stack = createStackNavigator();
@@ -34,18 +35,20 @@ function ProfileStack() {
 }
 
 function App() {
-  useEffect(() => {
-    // componentDidMount logic goes here
-  }, []);
+  const [currentUser, setCurrentUser] = useState(null);
 
-  const searchText = () => {
-    console.log('perform query');
-  };
+  useEffect(() => {
+    const unsubscribe = auth.onAuthStateChanged(user => {
+      setCurrentUser(user);
+    });
+
+    return unsubscribe;
+  }, []);
 
   return (
     <NavigationContainer>
       <Drawer.Navigator
-        initialRouteName="LoginScreen"
+        initialRouteName={currentUser ? 'HomeScreen' : 'LoginScreen'}
         drawerStyle={{width: '40%', backgroundColor: 'purple'}}
         drawerType="slide"
         overlayColor="transparent"
@@ -57,6 +60,7 @@ function App() {
           name="Login"
           component={LoginScreen}
           options={{
+            headerShown: false,
             drawerIcon: ({color}) => (
               <Ionicons name="log-in" size={16} color={color} />
             ),
@@ -77,18 +81,20 @@ function App() {
             },
           }}
         />
-        <Drawer.Screen
-          name="Profile"
-          component={ProfileStack}
-          options={{
-            drawerIcon: ({color}) => (
-              <Ionicons name="home" size={16} color={color} />
-            ), 
-            drawerLabelStyle: {
-              fontSize: 16,
-            },
-          }}
-        />
+        {currentUser && (
+          <Drawer.Screen
+            name="Profile"
+            component={ProfileStack}
+            options={{
+              drawerIcon: ({color}) => (
+                <Ionicons name="person" size={16} color={color} />
+              ),
+              drawerLabelStyle: {
+                fontSize: 16,
+              },
+            }}
+          />
+        )}
         <Drawer.Screen
           name="Wishlist"
           component={WishlistScreen}
